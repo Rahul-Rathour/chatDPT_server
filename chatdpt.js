@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const cache = new NodeCache({ stdTTL: 60 * 60 * 24 }); // 24 hours
+const cache = new NodeCache({ stdTTL: 60 * 60 * 24}); // 24 hours 
 
 const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY });
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
