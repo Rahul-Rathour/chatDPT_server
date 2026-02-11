@@ -3,6 +3,7 @@ import Groq from "groq-sdk";
 import dotenv from "dotenv";
 import { tavily } from "@tavily/core";
 import cors from "cors";
+import NodeCache from "node-cache";
 
 dotenv.config();
 
@@ -10,11 +11,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const cache = new NodeCache({ stdTTL: 60 * 60 * 24 }); // 24 hours
+
 const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY });
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-export async function generate(userMessage) {
-    const messages = [
+export async function generate(userMessage, threadId) {
+    const baseMessages = [
         {
             role: "system",
             content: `You are a smart personal assistant.
@@ -46,6 +49,9 @@ export async function generate(userMessage) {
         //     content: "What is the current weather of bareilly?"
         // }
     ];
+
+    const messages = cache.get(threadId) ?? baseMessages;
+
     messages.push({
         role: "user",
         content: userMessage,
@@ -77,7 +83,10 @@ export async function generate(userMessage) {
         messages.push(completion.choices[0].message);
         const toolCalls = completion.choices[0].message.tool_calls;
         if (!toolCalls) {
-            return completion.choices[0].message.content;
+            // here we end the chatDPT response
+            cache.set(threadId, messages);
+            // console.log(cache);
+            return completion.choices[0].message.content; // final response from the chatDPT
         }
 
         if (toolCalls) {
